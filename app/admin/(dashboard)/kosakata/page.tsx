@@ -187,7 +187,20 @@ export default function KosakataPage() {
 
   function openEdit(item: Kosakata) {
     setEditTarget(item);
-    reset(item);
+    reset({
+      title: item.title,
+      slug: item.slug,
+      description: item.description ?? undefined,
+      category_id: item.category_id ?? undefined,
+      level: item.level,
+      arabic_text: item.arabic_text,
+      arabic_harakat: item.arabic_harakat ?? undefined,
+      indonesia_meaning: item.indonesia_meaning,
+      example_sentence_ar: item.example_sentence_ar ?? undefined,
+      example_sentence_id: item.example_sentence_id ?? undefined,
+      word_type: item.word_type ?? undefined,
+      published: item.published,
+    });
     setDialogOpen(true);
   }
 
@@ -352,7 +365,7 @@ export default function KosakataPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="k-level">Level</Label>
-                <Select defaultValue="pemula" onValueChange={(v) => setValue('level', v as never)}>
+                <Select value={watch('level') || 'pemula'} onValueChange={(v) => setValue('level', v as never)}>
                   <SelectTrigger id="k-level">
                     <SelectValue />
                   </SelectTrigger>
@@ -365,7 +378,7 @@ export default function KosakataPage() {
               </div>
               <div>
                 <Label htmlFor="k-type">Jenis Kata</Label>
-                <Select onValueChange={(v) => setValue('word_type', v as never)}>
+                <Select value={watch('word_type') || undefined} onValueChange={(v) => setValue('word_type', v as never)}>
                   <SelectTrigger id="k-type">
                     <SelectValue placeholder="Pilih jenis kata" />
                   </SelectTrigger>
@@ -382,7 +395,7 @@ export default function KosakataPage() {
 
             <div>
               <Label htmlFor="k-category">Kategori</Label>
-              <Select onValueChange={(v) => setValue('category_id', v)}>
+              <Select value={watch('category_id') || undefined} onValueChange={(v) => setValue('category_id', v)}>
                 <SelectTrigger id="k-category">
                   <SelectValue placeholder="Pilih kategori" />
                 </SelectTrigger>
