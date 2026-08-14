@@ -46,5 +46,5 @@ Dibangun dengan tampilan bersih berbalut nuansa **Royal Blue & Slate White** (Li
 - **Backend & Database:** [Supabase](https://supabase.com/) (PostgreSQL, Supabase Auth, Storage)
 - **Icons:** [Lucide React](https://lucide.dev/)
 
----
+--
 
