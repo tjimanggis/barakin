@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   Plus, Search, Pencil, Trash2, Loader2, BookOpen,
-  RefreshCw, Eye, EyeOff, AlertCircle, ChevronDown,
+  RefreshCw, Eye, EyeOff, AlertCircle, ChevronDown, FileDown,
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -33,9 +33,16 @@ import {
 } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
+import jsPDF from 'jspdf';
+import { saveAs } from 'file-saver';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 
 /* ------------------------------------------------------------------ */
 /* Schema                                                               */
@@ -49,6 +56,7 @@ const lessonSchema = z.object({
   order_index: z.coerce.number().int().min(0).default(0),
   content_voweled: z.string().optional(),
   content_plain: z.string().optional(),
+  file_url: z.string().url('URL tidak valid').optional().or(z.literal('')),
   published: z.boolean().default(false),
 });
 type LessonForm = z.infer<typeof lessonSchema>;
@@ -97,14 +105,119 @@ export default function AdminLessonsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Lesson | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const {
     register, handleSubmit, reset, setValue, watch,
     formState: { errors, isSubmitting },
   } = useForm<LessonForm>({ resolver: zodResolver(lessonSchema) });
 
+  /* ---- handle document upload ---- */
+  async function handleDocumentUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!validTypes.includes(file.type)) {
+      toast({ title: 'Gagal', description: 'Hanya file PDF atau Word yang diperbolehkan', variant: 'destructive' });
+      return;
+    }
+
+    // Validate size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: 'Gagal', description: 'Ukuran file maksimal 5MB', variant: 'destructive' });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `lessons/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('documents')
+        .getPublicUrl(filePath);
+
+      setValue('file_url', publicUrl);
+      toast({ title: 'Berhasil', description: 'Dokumen berhasil diunggah' });
+    } catch (error: any) {
+      toast({ title: 'Gagal mengunggah', description: error.message, variant: 'destructive' });
+    } finally {
+      setUploading(false);
+    }
+  }
+
   const titleWatch = watch('title', '');
   const publishedWatch = watch('published', false);
+
+  /* ---- export pdf ---- */
+  function exportToPDF(lesson: Lesson) {
+    const doc = new jsPDF();
+    const margin = 20;
+    let y = 20;
+
+    doc.setFontSize(18);
+    doc.text(lesson.title, margin, y);
+    y += 10;
+
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    const date = format(new Date(lesson.created_at), 'd MMMM yyyy', { locale: localeId });
+    doc.text(`Dibuat: ${date} | Level: ${lesson.level}`, margin, y);
+    y += 10;
+
+    doc.setFontSize(12);
+    doc.setTextColor(0);
+    const content = lesson.content_voweled || lesson.content_plain || 'Konten tidak tersedia';
+    const splitContent = doc.splitTextToSize(content, 170);
+    doc.text(splitContent, margin, y);
+
+    doc.save(`${lesson.slug}.pdf`);
+  }
+
+  /* ---- export word ---- */
+  async function exportToWord(lesson: Lesson) {
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: [
+          new Paragraph({
+            text: lesson.title,
+            heading: HeadingLevel.HEADING_1,
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `Dibuat: ${format(new Date(lesson.created_at), 'd MMMM yyyy', { locale: localeId })}`,
+                italics: true,
+              }),
+              new TextRun({
+                text: ` | Level: ${lesson.level}`,
+                italics: true,
+              }),
+            ],
+          }),
+          new Paragraph({ text: "" }),
+          new Paragraph({
+            children: [
+              new TextRun(lesson.content_voweled || lesson.content_plain || 'Konten tidak tersedia'),
+            ],
+          }),
+        ],
+      }],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, `${lesson.slug}.docx`);
+  }
 
   /* ---- fetch ---- */
   const fetchAll = useCallback(async () => {
@@ -175,6 +288,7 @@ export default function AdminLessonsPage() {
       order_index: values.order_index,
       content_voweled: values.content_voweled || null,
       content_plain: values.content_plain || null,
+      file_url: values.file_url || null,
       published: values.published,
     };
 
@@ -336,6 +450,21 @@ export default function AdminLessonsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-1">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600">
+                              <FileDown className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => exportToPDF(lesson)}>
+                              Export PDF
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => exportToWord(lesson)}>
+                              Export Word
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600" onClick={() => openEdit(lesson)} aria-label="Edit">
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -458,6 +587,36 @@ export default function AdminLessonsPage() {
                 className="font-mono text-sm"
                 dir="auto"
               />
+            </div>
+
+            {/* File Upload */}
+            <div className="space-y-1.5">
+              <Label htmlFor="l-file">Unggah Dokumen (PDF/Word)</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="l-file"
+                  {...register('file_url')}
+                  placeholder="URL dokumen..."
+                  readOnly
+                  className="bg-slate-50"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="relative"
+                  disabled={uploading}
+                >
+                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+                  <input
+                    type="file"
+                    className="absolute inset-0 cursor-pointer opacity-0"
+                    accept=".pdf,.doc,.docx"
+                    onChange={handleDocumentUpload}
+                    disabled={uploading}
+                  />
+                </Button>
+              </div>
             </div>
 
             {/* Publish toggle */}

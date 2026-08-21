@@ -3,7 +3,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   Plus, Search, Pencil, Trash2, Loader2, FileText,
-  RefreshCw, AlertCircle, Tag, X,
+  RefreshCw, AlertCircle, Tag, X, Upload, Image as ImageIcon,
+  FileDown, FileVideo,
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -33,9 +34,16 @@ import {
 } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
+import jsPDF from 'jspdf';
+import { saveAs } from 'file-saver';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 
 /* ------------------------------------------------------------------ */
 /* Schema                                                               */
@@ -48,6 +56,7 @@ const articleSchema = z.object({
   category_id: z.string().optional(),
   read_time_minutes: z.coerce.number().int().min(1).max(120).default(5),
   cover_image_url: z.string().url('URL tidak valid').optional().or(z.literal('')),
+  file_url: z.string().url('URL tidak valid').optional().or(z.literal('')),
   published: z.boolean().default(false),
 });
 type ArticleForm = z.infer<typeof articleSchema>;
@@ -135,6 +144,7 @@ export default function AdminArticlesPage() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [tags, setTags] = useState<string[]>([]);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const {
     register, handleSubmit, reset, setValue, watch,
@@ -143,6 +153,147 @@ export default function AdminArticlesPage() {
 
   const titleWatch = watch('title', '');
   const publishedWatch = watch('published', false);
+  const coverImageUrlWatch = watch('cover_image_url', '');
+
+  /* ---- handle image upload ---- */
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: 'Gagal', description: 'Ukuran file maksimal 2MB', variant: 'destructive' });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `articles/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('images')
+        .getPublicUrl(filePath);
+
+      setValue('cover_image_url', publicUrl);
+      toast({ title: 'Berhasil', description: 'Gambar berhasil diunggah' });
+    } catch (error: any) {
+      toast({ title: 'Gagal mengunggah', description: error.message, variant: 'destructive' });
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  /* ---- handle document upload ---- */
+  async function handleDocumentUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!validTypes.includes(file.type)) {
+      toast({ title: 'Gagal', description: 'Hanya file PDF atau Word yang diperbolehkan', variant: 'destructive' });
+      return;
+    }
+
+    // Validate size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: 'Gagal', description: 'Ukuran file maksimal 5MB', variant: 'destructive' });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `articles/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('documents')
+        .getPublicUrl(filePath);
+
+      setValue('file_url', publicUrl);
+      toast({ title: 'Berhasil', description: 'Dokumen berhasil diunggah' });
+    } catch (error: any) {
+      toast({ title: 'Gagal mengunggah', description: error.message, variant: 'destructive' });
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  /* ---- export pdf ---- */
+  function exportToPDF(article: Article) {
+    const doc = new jsPDF();
+    const margin = 20;
+    let y = 20;
+
+    doc.setFontSize(18);
+    doc.text(article.title, margin, y);
+    y += 10;
+
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    const date = format(new Date(article.created_at), 'd MMMM yyyy', { locale: localeId });
+    doc.text(`Dibuat: ${date} | Estimasi baca: ${article.read_time_minutes} menit`, margin, y);
+    y += 10;
+
+    doc.setFontSize(12);
+    doc.setTextColor(0);
+    const content = article.content || 'Konten tidak tersedia';
+    const splitContent = doc.splitTextToSize(content, 170);
+    doc.text(splitContent, margin, y);
+
+    doc.save(`${article.slug}.pdf`);
+  }
+
+  /* ---- export word ---- */
+  async function exportToWord(article: Article) {
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: [
+          new Paragraph({
+            text: article.title,
+            heading: HeadingLevel.HEADING_1,
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `Dibuat: ${format(new Date(article.created_at), 'd MMMM yyyy', { locale: localeId })}`,
+                italics: true,
+              }),
+              new TextRun({
+                text: ` | Estimasi baca: ${article.read_time_minutes} menit`,
+                italics: true,
+              }),
+            ],
+          }),
+          new Paragraph({ text: "" }),
+          new Paragraph({
+            children: [
+              new TextRun(article.content || 'Konten tidak tersedia'),
+            ],
+          }),
+        ],
+      }],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, `${article.slug}.docx`);
+  }
 
   /* ---- fetch ---- */
   const fetchAll = useCallback(async () => {
@@ -212,6 +363,7 @@ export default function AdminArticlesPage() {
       category_id: values.category_id || null,
       read_time_minutes: values.read_time_minutes,
       cover_image_url: values.cover_image_url || null,
+      file_url: values.file_url || null,
       tags,
       published: values.published,
     };
@@ -369,6 +521,21 @@ export default function AdminArticlesPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-1">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600">
+                              <FileDown className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => exportToPDF(article)}>
+                              Export PDF
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => exportToWord(article)}>
+                              Export Word
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600" onClick={() => openEdit(article)} aria-label="Edit">
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -448,8 +615,34 @@ export default function AdminArticlesPage() {
                 <Input id="a-read" type="number" min={1} max={120} {...register('read_time_minutes')} />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="a-cover">URL Gambar Cover</Label>
-                <Input id="a-cover" type="url" placeholder="https://..." {...register('cover_image_url')} className={errors.cover_image_url ? 'border-red-400' : ''} />
+                <Label htmlFor="a-cover">Gambar Cover</Label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input id="a-cover" type="url" placeholder="https://..." {...register('cover_image_url')} className={errors.cover_image_url ? 'border-red-400 pl-8' : 'pl-8'} />
+                    <ImageIcon className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="relative"
+                    disabled={uploading}
+                  >
+                    {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                    <input
+                      type="file"
+                      className="absolute inset-0 cursor-pointer opacity-0"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      disabled={uploading}
+                    />
+                  </Button>
+                </div>
+                {coverImageUrlWatch && (
+                  <div className="mt-2 relative h-20 w-32 rounded-md overflow-hidden border">
+                    <img src={coverImageUrlWatch} alt="Preview" className="h-full w-full object-cover" />
+                  </div>
+                )}
                 {errors.cover_image_url && <p className="text-xs text-red-500">{errors.cover_image_url.message}</p>}
               </div>
             </div>
@@ -460,16 +653,46 @@ export default function AdminArticlesPage() {
               <TagInput tags={tags} onChange={setTags} />
             </div>
 
-            {/* Content */}
-            <div className="space-y-1.5">
-              <Label htmlFor="a-content">Isi Artikel</Label>
-              <Textarea
-                id="a-content"
-                placeholder="Tulis isi artikel di sini..."
-                rows={10}
-                {...register('content')}
-                className="font-mono text-sm"
-              />
+            {/* Content & File */}
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="a-content">Isi Artikel</Label>
+                <Textarea
+                  id="a-content"
+                  placeholder="Tulis isi artikel di sini..."
+                  rows={10}
+                  {...register('content')}
+                  className="font-mono text-sm"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="a-file">Unggah Dokumen (PDF/Word)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="a-file"
+                    {...register('file_url')}
+                    placeholder="URL dokumen..."
+                    readOnly
+                    className="bg-slate-50"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="relative"
+                    disabled={uploading}
+                  >
+                    {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+                    <input
+                      type="file"
+                      className="absolute inset-0 cursor-pointer opacity-0"
+                      accept=".pdf,.doc,.docx"
+                      onChange={handleDocumentUpload}
+                      disabled={uploading}
+                    />
+                  </Button>
+                </div>
+              </div>
             </div>
 
             {/* Publish toggle */}
