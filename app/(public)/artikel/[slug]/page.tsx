@@ -54,12 +54,17 @@ export default async function ArtikelDetailPage({
 
   if (!article) notFound();
 
+  console.log('DEBUG: article found:', article);
+
   /* Fetch author profile */
   const { data: author } = await supabase
     .from('profiles')
     .select('display_name, avatar_url')
     .eq('id', article.author_id)
     .maybeSingle();
+
+  console.log('DEBUG: author found:', author);
+  console.log('DEBUG: author_id:', article.author_id);
 
   /* Fetch category */
   const { data: category } = article.category_id
@@ -136,7 +141,7 @@ export default async function ArtikelDetailPage({
         <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-slate-500">
           <span className="flex items-center gap-1.5">
             <User className="h-4 w-4" />
-            {author?.display_name ?? 'Tim Barakin'}
+            {author?.display_name ?? `Author (${article.author_id})`}
           </span>
           <span className="flex items-center gap-1.5">
             <Calendar className="h-4 w-4" />
@@ -171,6 +176,18 @@ export default async function ArtikelDetailPage({
           </p>
         )}
 
+        {/* File Download */}
+        {article.file_url && (
+          <div className="mb-8">
+            <Button asChild variant="default" className="bg-blue-600">
+              <a href={article.file_url} target="_blank" rel="noopener noreferrer">
+                <FileDown className="mr-2 h-4 w-4" />
+                Unduh Lampiran Dokumen
+              </a>
+            </Button>
+          </div>
+        )}
+
         {/* Main content */}
         {article.content ? (
           <div className="prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-p:leading-relaxed prose-p:text-slate-700 prose-a:text-blue-600 prose-strong:text-slate-900">
@@ -196,7 +213,8 @@ export default async function ArtikelDetailPage({
           </div>
         ) : (
           <p className="text-slate-400 italic">Konten artikel belum tersedia.</p>
-        )}
+        )
+}
 
         <Separator className="my-10" />
 

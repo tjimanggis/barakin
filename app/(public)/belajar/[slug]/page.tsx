@@ -12,6 +12,8 @@ import { ArrowLeft, BookOpen, Loader2 } from 'lucide-react';
 import { HarakatToggle } from '@/components/arabic/harakat-toggle';
 import { TasrifTable } from '@/components/arabic/tasrif-table';
 import { ArabicAudioButton } from '@/components/arabic/audio-makhraj-player';
+import { BookmarkButton } from '@/components/student/bookmark-button';
+import { useToast } from '@/hooks/use-toast';
 
 const levelColors: Record<string, string> = {
   pemula:   'bg-blue-50 text-blue-700 border-blue-200',
@@ -29,8 +31,10 @@ export default function BelajarDetailPage() {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [category, setCategory] = useState<Category | null>(null);
   const [related, setRelated] = useState<Lesson[]>([]);
+  const [progress, setProgress] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [notFoundFlag, setNotFoundFlag] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!slug) return;
@@ -45,6 +49,17 @@ export default function BelajarDetailPage() {
 
       if (!data) { setNotFoundFlag(true); setLoading(false); return; }
       setLesson(data as Lesson);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: prog } = await supabase
+          .from('user_progress')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('lesson_id', data.id)
+          .maybeSingle();
+        setProgress(prog);
+      }
 
       if (data.category_id) {
         const { data: cat } = await supabase
@@ -66,6 +81,23 @@ export default function BelajarDetailPage() {
     }
     load();
   }, [slug]);
+
+  async function markAsDone() {
+    if (!lesson) return;
+    const supabase = getSupabaseBrowser();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { toast({ title: 'Perlu login', variant: 'destructive' }); return; }
+    
+    const { error } = await supabase
+      .from('user_progress')
+      .upsert({ user_id: user.id, lesson_id: lesson.id, status: 'completed' }, { onConflict: 'user_id,lesson_id' });
+    
+    if (error) toast({ title: 'Gagal', description: error.message, variant: 'destructive' });
+    else {
+      toast({ title: 'Materi ditandai selesai!' });
+      setProgress({ ...progress, status: 'completed' });
+    }
+  }
 
   if (loading) {
     return (
@@ -126,6 +158,7 @@ export default function BelajarDetailPage() {
             <h1 className="flex-1 text-3xl font-extrabold leading-tight text-slate-900 md:text-4xl">
               {lesson.title}
             </h1>
+            <BookmarkButton lessonId={lesson.id} initialBookmarked={progress?.bookmarked ?? false} />
             {titleWords[0] && (
               <ArabicAudioButton word={titleWords[0]} size="md" className="mt-1 flex-shrink-0" />
             )}
@@ -229,12 +262,15 @@ export default function BelajarDetailPage() {
         )}
 
         {/* Back */}
-        <div>
+        <div className="flex items-center gap-4">
           <Button asChild variant="outline">
             <Link href="/belajar">
               <ArrowLeft className="mr-2 h-4 w-4" />Semua Materi
             </Link>
           </Button>
+          {progress?.status !== 'completed' && (
+            <Button onClick={markAsDone}>Tandai Selesai</Button>
+          )}
         </div>
       </div>
     </div>
