@@ -2,17 +2,17 @@ name: Supabase Keep Alive
 
 on:
   schedule:
-    # Berjalan 1 hari sekali setiap pukul 00.00 UTC
-    - cron: '0 0 * * *'
-  # Memungkinkan workflow dijalankan secara manual dari tab Actions di GitHub
-  workflow_dispatch:
+    # Menjalankan otomatis setiap 3 hari sekali pada jam 00:00 UTC
+    - cron: '0 0 */3 * *'
+  workflow_dispatch: # Memungkinkan tombol 'Run workflow' manual di tab Actions
 
 jobs:
   ping-supabase:
     runs-on: ubuntu-latest
     steps:
-      - name: Send HTTP Request to Supabase
-        run: |
-          curl -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/" \
-          -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-          -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}"
+      - name: Send request to Supabase
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: '${{ secrets.SUPABASE_URL }}/rest/v1/'
+          method: 'GET'
+          customHeaders: '{"apikey": "${{ secrets.SUPABASE_ANON_KEY }}"}'
