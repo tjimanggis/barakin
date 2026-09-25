@@ -2,17 +2,17 @@ name: Supabase Keep Alive
 
 on:
   schedule:
-    # Menjalankan otomatis setiap 3 hari sekali pada jam 00:00 UTC
-    - cron: '0 0 */3 * *'
-  workflow_dispatch: # Memungkinkan tombol 'Run workflow' manual di tab Actions
+    # Dijalankan setiap hari pada pukul 00:00 UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Memungkinkan Anda menjalankannya secara manual dari tab Actions
 
 jobs:
   ping-supabase:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu26
     steps:
-      - name: Send request to Supabase
-        uses: fjogeleit/http-request-action@v1
-        with:
-          url: '${{ secrets.SUPABASE_URL }}/rest/v1/'
-          method: 'GET'
-          customHeaders: '{"apikey": "${{ secrets.SUPABASE_ANON_KEY }}"}'
+      - name: Send request to Supabase database
+        run: |
+          # Ganti 'nama_tabel' dengan salah satu tabel yang ada di database Anda
+          curl -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/profilesl?select=count&limit=1" \
+          -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}"
