@@ -4,15 +4,14 @@ on:
   schedule:
     # Dijalankan setiap hari pada pukul 00:00 UTC
     - cron: '0 0 * * *'
-  workflow_dispatch: # Memungkinkan Anda menjalankannya secara manual dari tab Actions
+  workflow_dispatch: # Memungkinkan dijalankan manual dari tab Actions
 
 jobs:
   ping-supabase:
-    runs-on: ubuntu26
+    runs-on: ubuntu-latest
     steps:
       - name: Send request to Supabase database
         run: |
-          # Ganti 'nama_tabel' dengan salah satu tabel yang ada di database Anda
-          curl -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/profilesl?select=count&limit=1" \
+          curl -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/profiles?select=count&limit=1" \
           -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
           -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}"
