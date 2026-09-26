@@ -56,7 +56,7 @@ export default async function DashboardPage() {
         <h2 className="text-lg font-semibold mb-4 text-slate-800 border-l-4 border-blue-500 pl-3">Aktivitas Terakhir</h2>
         {progress && progress.length > 0 ? (
           <ul className="space-y-4">
-            {progress.sort((a, b) => new Date(b.last_accessed_at).getTime() - new Date(a.last_accessed_at).getTime()).slice(0, 5).map((p: any) => (
+            {progress.sort((a: any, b: any) => new Date(b.last_accessed_at).getTime() - new Date(a.last_accessed_at).getTime()).slice(0, 5).map((p: any) => (
               <li key={p.id} className="text-sm text-slate-600 flex items-center justify-between p-3 rounded-lg hover:bg-blue-50 transition-colors">
                 <span>Materi {p.lesson_id}</span>
                 <span className="text-slate-400 font-mono text-xs">Terakhir: {new Date(p.last_accessed_at).toLocaleDateString()}</span>
