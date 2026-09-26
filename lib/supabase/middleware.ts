@@ -1,10 +1,25 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.NEXT_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_SUPABASE_ANON_KEY!;
 
 export async function updateSession(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const isAdminRoute = pathname.startsWith('/admin');
+  const isStudentRoute = pathname.startsWith('/dashboard');
+  const isAdminLogin = pathname === '/admin/login';
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    if (isAdminRoute && !isAdminLogin) {
+      return NextResponse.redirect(new URL('/admin/login', request.url));
+    }
+    if (isStudentRoute) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+    return NextResponse.next();
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase: any = createServerClient<any>(
@@ -31,12 +46,6 @@ export async function updateSession(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  const { pathname } = request.nextUrl;
-
-  const isAdminRoute = pathname.startsWith('/admin');
-  const isStudentRoute = pathname.startsWith('/dashboard');
-  const isAdminLogin = pathname === '/admin/login';
 
   if (!user && (isAdminRoute || isStudentRoute) && !isAdminLogin) {
     const redirectUrl = isAdminRoute ? '/admin/login' : '/login';

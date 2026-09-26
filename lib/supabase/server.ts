@@ -1,8 +1,8 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.NEXT_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_SUPABASE_ANON_KEY!;
 
 export async function getSupabaseServer(): Promise<any> {
   // Next.js 13: cookies() is synchronous — do NOT await it

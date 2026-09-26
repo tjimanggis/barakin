@@ -27,8 +27,8 @@ export async function POST(request: NextRequest) {
 
   // Only available server-side — never exposed to the client
   const supabaseAdmin = createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    process.env.NEXT_SUPABASE_URL!,
+    process.env.NEXT_SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false } },
   );
 
