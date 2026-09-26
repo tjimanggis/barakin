@@ -49,10 +49,9 @@ export default function RegisterPage() {
     formState: { errors, isSubmitting },
   } = useForm<RegisterForm>({ resolver: zodResolver(registerSchema) });
 
-  const supabase = getSupabaseBrowser();
-
   async function onSubmit(values: RegisterForm) {
     setServerError(null);
+    const supabase = getSupabaseBrowser();
     const { error } = await supabase.auth.signUp({
       email: values.email,
       password: values.password,
@@ -76,6 +75,7 @@ export default function RegisterPage() {
 
   async function signUpWithOAuth(provider: 'google' | 'github') {
     setOauthLoading(provider);
+    const supabase = getSupabaseBrowser();
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {

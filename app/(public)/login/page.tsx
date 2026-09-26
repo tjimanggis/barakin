@@ -36,10 +36,9 @@ export default function LoginPage() {
     formState: { errors, isSubmitting },
   } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
 
-  const supabase = getSupabaseBrowser();
-
   async function onSubmit(values: LoginForm) {
     setServerError(null);
+    const supabase = getSupabaseBrowser();
     const { error } = await supabase.auth.signInWithPassword({
       email: values.email,
       password: values.password,
@@ -76,6 +75,7 @@ export default function LoginPage() {
 
   async function signInWithOAuth(provider: 'google' | 'github') {
     setOauthLoading(provider);
+    const supabase = getSupabaseBrowser();
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
