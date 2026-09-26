@@ -6,7 +6,7 @@
   # 📚 Barakin
   **Platform Belajar Bahasa Arab Modern, Interaktif, & Terstruktur**
 
-  [Website Demo](https://barakin.vercel.app)<--sementara · [Laporkan Bug](https://github.com/username/barakin/issues) · [Minta Fitur](https://github.com/username/barakin/issues)
+  [Website](https://barakin.vercel.app)<-- domain sementara · [Laporkan Bug](https://github.com/username/barakin/issues) · [Minta Fitur](https://github.com/username/barakin/issues)
 
   <br />
 
