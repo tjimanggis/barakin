@@ -21,8 +21,8 @@ export default async function DashboardPage() {
     .select('*')
     .eq('user_id', user.id);
 
-  const bookmarks = progress?.filter((p) => p.bookmarked) || [];
-  const completed = progress?.filter((p) => p.status === 'completed') || [];
+  const bookmarks = progress?.filter((p: any) => p.bookmarked) || [];
+  const completed = progress?.filter((p: any) => p.status === 'completed') || [];
 
   return (
     <div className="container-wide py-12 space-y-8 animate-in fade-in duration-500">
