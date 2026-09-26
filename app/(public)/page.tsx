@@ -37,7 +37,7 @@ export default async function HomePage() {
   const stats = [
     { label: 'Materi Tersedia', value: lessonCount ? `${lessonCount}` : '—', icon: BookOpen },
     { label: 'Pelajar Terdaftar', value: userCount ? `${userCount}` : '—', icon: Users },
-    { label: 'Artikel Bahasa Arab', value: articleCount ? `${articleCount}` : '—', icon: BookMarked },
+    { label: 'Artikel Keislaman', value: articleCount ? `${articleCount}` : '—', icon: BookMarked },
     { label: 'Tingkat Penyelesaian', value: '87%', icon: GraduationCap },
   ];
 
@@ -51,17 +51,17 @@ export default async function HomePage() {
         <div className="container-wide py-20 md:py-28">
           <div className="mx-auto max-w-3xl text-center">
             <Badge className="mb-6 border-blue-200 bg-blue-50 text-blue-700">
-              Nahwu &middot; Sharaf &middot; Mufrodat
+              Aqidah &middot; Fiqh &middot; Bahasa Arab
             </Badge>
             <h1 className="text-4xl font-bold tracking-tight text-slate-900 md:text-6xl">
-              Belajar Bahasa Arab
+              Belajar Agama & Bahasa Arab
               <br />
               <span className="text-blue-600">dengan Cara Simple Dan Praktis</span>
             </h1>
             <p className="mt-6 text-lg leading-relaxed text-slate-600">
-              Pelajari ilmu Nahwu dan Sharaf melalui materi interaktif, kuis,
-              dan kamus akar kata. Dilengkapi mode teks gundul untuk melatih
-              kemampuan membaca kitab.
+              Pelajari ilmu Aqidah, Fiqh, dan Bahasa Arab melalui materi interaktif, kuis,
+              dan kamus istilah. Dilengkapi dengan artikel mendalam untuk memperkaya
+              wawasan keislaman Anda.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Button asChild size="lg" className="bg-blue-600 hover:bg-blue-700">
@@ -144,7 +144,7 @@ export default async function HomePage() {
             <div className="mb-10 flex items-end justify-between">
               <div>
                 <h2 className="text-2xl font-bold text-slate-900 md:text-3xl">Artikel Terbaru</h2>
-                <p className="mt-2 text-slate-600">Wawasan dan penjelasan seputar bahasa Arab</p>
+                <p className="mt-2 text-slate-600">Wawasan dan penjelasan seputar keislaman</p>
               </div>
               <Button asChild variant="link" className="text-blue-600">
                 <Link href="/artikel">Lihat Semua <ArrowRight className="ml-1 h-4 w-4" /></Link>

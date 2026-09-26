@@ -98,11 +98,11 @@ export default function AdminLoginPage() {
 
           <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
             <div className="space-y-1.5">
-              <Label htmlFor="email">Email Admin</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@barakin.id"
+                placeholder="isi email/atau usernamemu"
                 autoComplete="email"
                 {...register('email')}
                 className={errors.email ? 'border-red-400' : ''}

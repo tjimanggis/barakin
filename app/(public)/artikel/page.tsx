@@ -42,7 +42,7 @@ export default function ArtikelPage() {
             Artikel &amp; Wawasan
           </h1>
           <p className="mt-2 text-slate-600">
-            Artikel bahasa Arab dengan insight mendalam tentang Nahwu, Sharaf, dan Mufrodat
+            Artikel dengan insight mendalam tentang Nahwu, Sharaf, Mufrodat, dan ilmu agama.
           </p>
         </div>
       </section>

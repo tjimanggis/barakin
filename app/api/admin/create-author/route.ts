@@ -4,13 +4,6 @@ import { createClient } from '@supabase/supabase-js';
 import { getSupabaseServer } from '@/lib/supabase/server';
 import type { Database } from '@/lib/types';
 
-// Only available server-side — never exposed to the client
-const supabaseAdmin = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { autoRefreshToken: false, persistSession: false } },
-);
-
 export async function POST(request: NextRequest) {
   // 1. Verify the calling user is an admin
   const supabase = await getSupabaseServer();
@@ -31,6 +24,13 @@ export async function POST(request: NextRequest) {
   if (callerProfile?.role !== 'admin') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
+
+  // Only available server-side — never exposed to the client
+  const supabaseAdmin = createClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } },
+  );
 
   // 2. Parse body
   const body = await request.json().catch(() => null);

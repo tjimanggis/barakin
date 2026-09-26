@@ -56,7 +56,7 @@ export default function BelajarPage() {
       <section className="border-b border-slate-200 bg-gradient-to-b from-blue-50/40 to-white">
         <div className="container-wide py-12">
           <h1 className="text-3xl font-bold text-slate-900 md:text-4xl">Modul Pelajaran</h1>
-          <p className="mt-2 text-slate-600">Nahwu, Sharaf, dan Mufrodat — dari Pemula hingga Mahir</p>
+          <p className="mt-2 text-slate-600">Nahwu, Sharaf, Mufrodat, dan ilmu agama, — dari Pemula hingga Mahir</p>
         </div>
       </section>
 

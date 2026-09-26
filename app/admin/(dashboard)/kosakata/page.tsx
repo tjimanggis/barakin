@@ -80,12 +80,27 @@ export default function KosakataPage() {
   });
 
   const publishedWatch = watch('published', false);
+  const arabicTextWatch = watch('arabic_text', '');
 
   // Load data
   useEffect(() => {
     fetchKosakata();
     fetchCategories();
   }, []);
+
+  // auto-slug
+  useEffect(() => {
+    if (!editTarget && arabicTextWatch) {
+      // Sederhana: ubah ke lowercase, spasi jadi dash, buang karakter non-alphanumeric
+      const slug = arabicTextWatch
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .trim();
+      setValue('slug', slug);
+    }
+  }, [arabicTextWatch, editTarget, setValue]);
 
   async function fetchKosakata() {
     setLoading(true);
@@ -346,8 +361,20 @@ export default function KosakataPage() {
                 {errors.arabic_text && <p className="mt-1 text-sm text-red-600">{errors.arabic_text.message}</p>}
               </div>
               <div>
+                <Label htmlFor="k-slug">Slug <span className="text-red-500">*</span></Label>
+                <Input id="k-slug" placeholder="kitab" {...register('slug')} />
+                {errors.slug && <p className="mt-1 text-sm text-red-600">{errors.slug.message}</p>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
                 <Label htmlFor="k-harakat">Dengan Harakat</Label>
                 <Input id="k-harakat" placeholder="كِتَاب" {...register('arabic_harakat')} className="font-arabic text-lg" />
+              </div>
+              <div>
+                <Label htmlFor="k-title">Judul/Label (opsional)</Label>
+                <Input id="k-title" placeholder="Peralatan Sekolah" {...register('title')} />
               </div>
             </div>
 
@@ -355,11 +382,6 @@ export default function KosakataPage() {
               <Label htmlFor="k-meaning">Arti Indonesia <span className="text-red-500">*</span></Label>
               <Input id="k-meaning" placeholder="Buku" {...register('indonesia_meaning')} />
               {errors.indonesia_meaning && <p className="mt-1 text-sm text-red-600">{errors.indonesia_meaning.message}</p>}
-            </div>
-
-            <div>
-              <Label htmlFor="k-title">Judul/Label (opsional)</Label>
-              <Input id="k-title" placeholder="Peralatan Sekolah" {...register('title')} />
             </div>
 
             <div className="grid grid-cols-2 gap-4">

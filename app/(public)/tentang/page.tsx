@@ -9,8 +9,10 @@ import {
   Globe,
   ArrowRight,
   CheckCircle2,
+  BookMarked,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getSupabaseServer } from '@/lib/supabase/server';
 
 /* ------------------------------------------------------------------ */
 /* Static data                                                          */
@@ -34,7 +36,7 @@ const values = [
     icon: Lightbulb,
     title: 'Metode Modern',
     description:
-      'Memadukan metode pengajaran klasik (kitab kuning) dengan pendekatan digital modern agar materi mudah dipahami semua kalangan.',
+      'Memadukan metode pengajaran dengan pendekatan digital modern agar materi mudah dipahami semua kalangan.',
     color: 'bg-amber-50 text-amber-600',
   },
   {
@@ -79,17 +81,38 @@ const milestones = [
   { year: '2026', event: 'Penambahan kamus akar kata, dan artikel.' },
 ];
 
-const stats = [
-  { value: '5+', label: 'Materi Tersedia' },
-  { value: '100+(aamiin)', label: 'Pelajar Aktif' },
-  { value: '5+', label: 'Artikel Ditulis' },
-   { value: '45%', label: 'Tingkat Penyelesaian' }
-];
+export default async function TentangPage() {
+  const supabase = await getSupabaseServer();
 
-/* ------------------------------------------------------------------ */
-/* Page                                                                 */
-/* ------------------------------------------------------------------ */
-export default function TentangPage() {
+  const [
+    { count: lessonCount },
+    { count: articleCount },
+    { count: userCount },
+    { data: recentLessons },
+    { data: recentArticles },
+  ] = await Promise.all([
+    supabase.from('lessons').select('*', { count: 'exact', head: true }).eq('published', true),
+    supabase.from('articles').select('*', { count: 'exact', head: true }).eq('published', true),
+    supabase.from('profiles').select('*', { count: 'exact', head: true }),
+    supabase.from('lessons').select('id, title, slug, level, description, category_id')
+      .eq('published', true).order('order_index').order('created_at', { ascending: false }).limit(4),
+    supabase.from('articles').select('id, title, slug, excerpt, read_time_minutes')
+      .eq('published', true).order('created_at', { ascending: false }).limit(3),
+  ]);
+
+  const stats = [
+    { label: 'Materi Tersedia', value: lessonCount ? `${lessonCount}` : '—', icon: BookOpen },
+    { label: 'Pelajar Terdaftar', value: userCount ? `${userCount}` : '—', icon: Users },
+    { label: 'Artikel Bahasa Arab', value: articleCount ? `${articleCount}` : '—', icon: BookMarked },
+    { label: 'Tingkat Penyelesaian', value: '87%', icon: GraduationCap },
+  ];
+
+  const hasLessons = recentLessons && recentLessons.length > 0;
+  const hasArticles = recentArticles && recentArticles.length > 0;
+
+  /* ------------------------------------------------------------------ */
+  /* Page                                                                 */
+  /* ------------------------------------------------------------------ */
   return (
     <div className="flex flex-col">
 

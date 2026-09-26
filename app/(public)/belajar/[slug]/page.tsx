@@ -43,7 +43,7 @@ export default function BelajarDetailPage() {
       const { data } = await supabase
         .from('lessons')
         .select('*')
-        .eq('slug', slug)
+        .filter('slug', 'eq', slug)
         .eq('published', true)
         .maybeSingle();
 

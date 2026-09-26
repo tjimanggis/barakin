@@ -73,7 +73,7 @@ export default function KamusPage() {
             Kamus &amp; Alat Belajar
           </h1>
           <p className="mt-2 text-slate-600">
-            Kosakata, tabel tasrif interaktif, dan latihan baca harakat
+            Kosakata, tabel tasrif interaktif, latihan baca harakat, dan istilah keislaman
           </p>
         </div>
       </section>

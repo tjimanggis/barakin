@@ -22,7 +22,7 @@ export async function generateMetadata({
   const { data } = await supabase
     .from('articles')
     .select('title, excerpt')
-    .eq('slug', params.slug)
+    .filter('slug', 'eq', params.slug)
     .eq('published', true)
     .maybeSingle();
 
@@ -48,7 +48,7 @@ export default async function ArtikelDetailPage({
   const { data: article } = await supabase
     .from('articles')
     .select('*')
-    .eq('slug', params.slug)
+    .filter('slug', 'eq', params.slug)
     .eq('published', true)
     .maybeSingle();
 
@@ -225,7 +225,7 @@ export default async function ArtikelDetailPage({
               Artikel Terkait
             </h2>
             <div className="grid gap-4 sm:grid-cols-3">
-              {related.map((rel) => (
+              {related.map((rel: any) => (
                 <Link
                   key={rel.id}
                   href={`/artikel/${rel.slug}`}

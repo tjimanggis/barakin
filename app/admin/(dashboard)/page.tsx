@@ -184,7 +184,7 @@ export default async function AdminDashboardPage() {
           </CardHeader>
           <CardContent className="space-y-3 pt-0">
             {recentLessons && recentLessons.length > 0 ? (
-              recentLessons.map((lesson) => (
+              recentLessons.map((lesson: any) => (
                 <div
                   key={lesson.id}
                   className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5"
@@ -236,7 +236,7 @@ export default async function AdminDashboardPage() {
           </CardHeader>
           <CardContent className="space-y-3 pt-0">
             {recentArticles && recentArticles.length > 0 ? (
-              recentArticles.map((article) => (
+              recentArticles.map((article: any) => (
                 <div
                   key={article.id}
                   className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5"

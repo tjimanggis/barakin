@@ -4,12 +4,6 @@ import { createClient } from '@supabase/supabase-js';
 import { getSupabaseServer } from '@/lib/supabase/server';
 import type { Database } from '@/lib/types';
 
-const supabaseAdmin = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { autoRefreshToken: false, persistSession: false } },
-);
-
 export async function POST(request: NextRequest) {
   // Verify caller is admin
   const supabase = await getSupabaseServer();
@@ -28,6 +22,12 @@ export async function POST(request: NextRequest) {
   if (callerProfile?.role !== 'admin') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
+
+  const supabaseAdmin = createClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } },
+  );
 
   const body = await request.json().catch(() => null);
   const { userId, newPassword } = body ?? {};

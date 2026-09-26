@@ -9,9 +9,9 @@ import { useAuth } from '@/components/providers/auth-provider';
 
 const navLinks = [
   { href: '/', label: 'Beranda' },
-  { href: '/belajar', label: 'Belajar' },
+  { href: '/belajar', label: 'Materi' },
   { href: '/artikel', label: 'Artikel' },
-  { href: '/kamus', label: 'Kamus Akar' },
+  { href: '/kamus', label: 'Kamus & Istilah' },
   { href: '/tentang', label: 'Tentang Kami' },
 ];
 
