@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -21,14 +20,15 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  const searchParams = useSearchParams();
-  const authError = searchParams.get('error');
-
   const [showPassword, setShowPassword] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<'google' | 'github' | null>(null);
-  const [serverError, setServerError] = useState<string | null>(
-    authError === 'auth' ? 'Login gagal. Silakan coba lagi.' : null,
-  );
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('error') === 'auth') {
+      setServerError('Login gagal. Silakan coba lagi.');
+    }
+  }, []);
 
   const {
     register,
