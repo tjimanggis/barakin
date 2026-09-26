@@ -1,91 +1,101 @@
+'use client';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getSupabaseServer } from '@/lib/supabase/server';
-import { ArrowLeft, Clock, Calendar, User, FileDown } from 'lucide-react';
+import { getSupabaseBrowser } from '@/lib/supabase/client';
+import { ArrowLeft, Clock, Calendar, User, FileDown, Heart, Bookmark } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
-import type { Metadata } from 'next';
+import { useEffect, useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
-/* ------------------------------------------------------------------ */
-/* Generate metadata for SEO                                            */
-/* ------------------------------------------------------------------ */
-export async function generateMetadata({
-  params,
-}: {
-  params: { slug: string };
-}): Promise<Metadata> {
-  const supabase = await getSupabaseServer();
-  const { data } = await supabase
-    .from('articles')
-    .select('title, excerpt')
-    .filter('slug', 'eq', params.slug)
-    .eq('published', true)
-    .maybeSingle();
-
-  if (!data) return { title: 'Artikel tidak ditemukan' };
-
-  return {
-    title: `${data.title} — Barakin`,
-    description: data.excerpt ?? undefined,
-  };
-}
-
-/* ------------------------------------------------------------------ */
-/* Page                                                                 */
-/* ------------------------------------------------------------------ */
-export default async function ArtikelDetailPage({
+export default function ArtikelDetailPage({
   params,
 }: {
   params: { slug: string };
 }) {
-  const supabase = await getSupabaseServer();
+  const [isLiked, setIsLiked] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [article, setArticle] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+  const supabase = getSupabaseBrowser();
 
-  /* Fetch article */
-  const { data: article } = await supabase
-    .from('articles')
-    .select('*')
-    .filter('slug', 'eq', params.slug)
-    .eq('published', true)
-    .maybeSingle();
+  useEffect(() => {
+    async function fetchData() {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
 
-  if (!article) notFound();
-
-  console.log('DEBUG: article found:', article);
-
-  /* Fetch author profile */
-  const { data: author } = await supabase
-    .from('profiles')
-    .select('display_name, avatar_url')
-    .eq('id', article.author_id)
-    .maybeSingle();
-
-  console.log('DEBUG: author found:', author);
-  console.log('DEBUG: author_id:', article.author_id);
-
-  /* Fetch category */
-  const { data: category } = article.category_id
-    ? await supabase
-        .from('categories')
-        .select('name, slug')
-        .eq('id', article.category_id)
-        .maybeSingle()
-    : { data: null };
-
-  /* Fetch related articles (same category, exclude current) */
-  const { data: related } = article.category_id
-    ? await supabase
+      const { data: articleData } = await supabase
         .from('articles')
-        .select('id, title, slug, excerpt, read_time_minutes, created_at')
+        .select('*')
+        .filter('slug', 'eq', params.slug)
         .eq('published', true)
-        .eq('category_id', article.category_id)
-        .neq('id', article.id)
-        .order('created_at', { ascending: false })
-        .limit(3)
-    : { data: [] };
+        .maybeSingle();
+
+      if (!articleData) {
+        notFound();
+      }
+      setArticle(articleData);
+
+      if (user) {
+        // Check Like
+        const { data: likeData } = await supabase
+          .from('article_likes')
+          .select('id')
+          .eq('article_id', articleData.id)
+          .eq('user_id', user.id)
+          .maybeSingle();
+        setIsLiked(!!likeData);
+
+        // Check Bookmark
+        const { data: bookmarkData } = await supabase
+          .from('article_bookmarks')
+          .select('id')
+          .eq('article_id', articleData.id)
+          .eq('user_id', user.id)
+          .maybeSingle();
+        setIsBookmarked(!!bookmarkData);
+      }
+      
+      setLoading(false);
+    }
+    fetchData();
+  }, [params.slug, supabase]);
+
+  async function toggleLike() {
+    if (!user) { toast({ title: 'Perlu Login', description: 'Silakan login untuk menyukai artikel.' }); return; }
+    
+    if (isLiked) {
+      await supabase.from('article_likes').delete().eq('article_id', article.id).eq('user_id', user.id);
+      setIsLiked(false);
+      toast({ title: 'Batal Suka', description: 'Artikel dihapus dari favorit.' });
+    } else {
+      await supabase.from('article_likes').insert({ article_id: article.id, user_id: user.id });
+      setIsLiked(true);
+      toast({ title: 'Disukai', description: 'Artikel ditambahkan ke favorit.' });
+    }
+  }
+
+  async function toggleBookmark() {
+    if (!user) { toast({ title: 'Perlu Login', description: 'Silakan login untuk membookmark artikel.' }); return; }
+    
+    if (isBookmarked) {
+      await supabase.from('article_bookmarks').delete().eq('article_id', article.id).eq('user_id', user.id);
+      setIsBookmarked(false);
+      toast({ title: 'Batal Bookmark', description: 'Artikel dihapus dari bookmark.' });
+    } else {
+      await supabase.from('article_bookmarks').insert({ article_id: article.id, user_id: user.id });
+      setIsBookmarked(true);
+      toast({ title: 'Dibookmark', description: 'Artikel ditambahkan ke bookmark.' });
+    }
+  }
+
+  if (loading) return <div>Loading...</div>;
 
   const publishedDate = format(new Date(article.created_at), 'd MMMM yyyy', {
     locale: localeId,
@@ -109,26 +119,34 @@ export default async function ArtikelDetailPage({
 
       {/* Content area */}
       <div className="container-prose mx-auto px-4 py-10">
-        {/* Back link */}
-        <Link
-          href="/artikel"
-          className="mb-6 inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-blue-600"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Kembali ke Artikel
-        </Link>
+        {/* Back link and Actions */}
+        <div className="flex justify-between items-center mb-6">
+          <Link
+            href="/artikel"
+            className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-blue-600"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Kembali ke Artikel
+          </Link>
+          <div className="flex gap-2">
+            <Button variant="outline" size="icon" onClick={toggleLike}>
+                <Heart className={`h-4 w-4 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
+            </Button>
+            <Button variant="outline" size="icon" onClick={toggleBookmark}>
+                <Bookmark className={`h-4 w-4 ${isBookmarked ? 'fill-blue-500 text-blue-500' : ''}`} />
+            </Button>
+          </div>
+        </div>
 
         {/* Category badge */}
-        {category && (
+        {article.category_id && (
           <div className="mb-4">
-            <Link href={`/artikel?kategori=${category.slug}`}>
-              <Badge
+            <Badge
                 variant="secondary"
-                className="bg-blue-50 text-blue-700 hover:bg-blue-100"
+                className="bg-blue-50 text-blue-700"
               >
-                {category.name}
+                Kategori
               </Badge>
-            </Link>
           </div>
         )}
 
@@ -141,7 +159,7 @@ export default async function ArtikelDetailPage({
         <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-slate-500">
           <span className="flex items-center gap-1.5">
             <User className="h-4 w-4" />
-            {author?.display_name ?? `Author (${article.author_id})`}
+            Author
           </span>
           <span className="flex items-center gap-1.5">
             <Calendar className="h-4 w-4" />
@@ -213,50 +231,7 @@ export default async function ArtikelDetailPage({
           </div>
         ) : (
           <p className="text-slate-400 italic">Konten artikel belum tersedia.</p>
-        )
-}
-
-        <Separator className="my-10" />
-
-        {/* Related articles */}
-        {related && related.length > 0 && (
-          <div>
-            <h2 className="mb-6 text-xl font-bold text-slate-900">
-              Artikel Terkait
-            </h2>
-            <div className="grid gap-4 sm:grid-cols-3">
-              {related.map((rel: any) => (
-                <Link
-                  key={rel.id}
-                  href={`/artikel/${rel.slug}`}
-                  className="group rounded-xl border border-slate-200 bg-slate-50 p-4 transition-shadow hover:shadow-md"
-                >
-                  <h3 className="font-semibold text-slate-900 line-clamp-2 group-hover:text-blue-600">
-                    {rel.title}
-                  </h3>
-                  {rel.excerpt && (
-                    <p className="mt-1.5 text-sm text-slate-500 line-clamp-2">
-                      {rel.excerpt}
-                    </p>
-                  )}
-                  <p className="mt-3 text-xs text-slate-400">
-                    {rel.read_time_minutes} menit baca
-                  </p>
-                </Link>
-              ))}
-            </div>
-          </div>
         )}
-
-        {/* Back button */}
-        <div className="mt-12">
-          <Button asChild variant="outline">
-            <Link href="/artikel">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Semua Artikel
-            </Link>
-          </Button>
-        </div>
       </div>
     </div>
   );
