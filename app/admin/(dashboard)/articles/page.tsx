@@ -349,7 +349,7 @@ export default function AdminArticlesPage() {
       category_id: article.category_id ?? '',
       read_time_minutes: article.read_time_minutes,
       cover_image_url: article.cover_image_url ?? '',
-      thumbnail_url: article.thumbnail_url ?? '',
+      thumbnail_url: (article as any).thumbnail_url ?? '',
       published: article.published,
     });
     setDialogOpen(true);

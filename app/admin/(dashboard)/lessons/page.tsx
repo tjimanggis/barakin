@@ -57,6 +57,7 @@ const lessonSchema = z.object({
   content_voweled: z.string().optional(),
   content_plain: z.string().optional(),
   file_url: z.string().url('URL tidak valid').optional().or(z.literal('')),
+  thumbnail_url: z.string().url('URL tidak valid').optional().or(z.literal('')),
   published: z.boolean().default(false),
 });
 type LessonForm = z.infer<typeof lessonSchema>;
@@ -174,6 +175,7 @@ export default function AdminLessonsPage() {
 
   const titleWatch = watch('title', '');
   const publishedWatch = watch('published', false);
+  const thumbnailUrlWatch = watch('thumbnail_url', '');
 
   /* ---- export pdf ---- */
   function exportToPDF(lesson: Lesson) {
@@ -288,6 +290,7 @@ export default function AdminLessonsPage() {
       order_index: lesson.order_index,
       content_voweled: lesson.content_voweled ?? '',
       content_plain: lesson.content_plain ?? '',
+      thumbnail_url: (lesson as any).thumbnail_url ?? '',
       published: lesson.published,
     });
     setDialogOpen(true);
@@ -306,6 +309,7 @@ export default function AdminLessonsPage() {
       content_voweled: values.content_voweled || null,
       content_plain: values.content_plain || null,
       file_url: values.file_url || null,
+      thumbnail_url: values.thumbnail_url || null,
       published: values.published,
     };
 
@@ -635,6 +639,21 @@ export default function AdminLessonsPage() {
                   />
                 </Button>
               </div>
+            </div>
+
+            {/* Thumbnail Upload */}
+            <div className="space-y-1.5">
+              <Label htmlFor="l-thumbnail">Thumbnail</Label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Input id="l-thumbnail" type="url" placeholder="https://..." {...register('thumbnail_url')} className="pl-8" />
+                </div>
+              </div>
+              {thumbnailUrlWatch && (
+                <div className="mt-2 relative h-20 w-32 rounded-md overflow-hidden border">
+                  <img src={thumbnailUrlWatch} alt="Thumbnail Preview" className="h-full w-full object-cover" />
+                </div>
+              )}
             </div>
 
             {/* Publish toggle */}

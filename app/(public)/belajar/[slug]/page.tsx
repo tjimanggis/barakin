@@ -8,7 +8,7 @@ import type { Lesson, Category } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, BookOpen, Loader2 } from 'lucide-react';
+import { ArrowLeft, BookOpen, Loader2, User } from 'lucide-react';
 import { HarakatToggle } from '@/components/arabic/harakat-toggle';
 import { TasrifTable } from '@/components/arabic/tasrif-table';
 import { ArabicAudioButton } from '@/components/arabic/audio-makhraj-player';
@@ -29,6 +29,7 @@ export default function BelajarDetailPage() {
   const slug = params?.slug as string;
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
+  const [authorName, setAuthorName] = useState<string>('');
   const [category, setCategory] = useState<Category | null>(null);
   const [related, setRelated] = useState<Lesson[]>([]);
   const [progress, setProgress] = useState<any>(null);
@@ -49,6 +50,14 @@ export default function BelajarDetailPage() {
 
       if (!data) { setNotFoundFlag(true); setLoading(false); return; }
       setLesson(data as Lesson);
+
+      // Fetch Author Name
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', data.author_id)
+        .single();
+      setAuthorName(profile?.display_name || 'Author');
 
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -167,6 +176,14 @@ export default function BelajarDetailPage() {
           {lesson.description && (
             <p className="mt-3 text-lg text-slate-600 leading-relaxed">{lesson.description}</p>
           )}
+
+          {/* Meta row */}
+          <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-slate-500">
+            <span className="flex items-center gap-1.5">
+              <User className="h-4 w-4" />
+              {authorName}
+            </span>
+          </div>
         </div>
       </section>
 

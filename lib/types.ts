@@ -36,6 +36,7 @@ export interface Lesson {
   author_id: string;
   published: boolean;
   order_index: number;
+  thumbnail_url: string | null;
   created_at: string;
   updated_at: string;
 }
