@@ -147,12 +147,12 @@ export default async function AdminDashboardPage() {
         </CardHeader>
         <CardContent className="flex flex-wrap gap-3">
           <Button asChild size="sm" className="bg-blue-600 hover:bg-blue-700">
-            <Link href="/admin/lessons/new">
+            <Link href="/admin/lessons/">
               <PenSquare className="mr-2 h-4 w-4" /> Tulis Materi Baru
             </Link>
           </Button>
           <Button asChild size="sm" variant="outline">
-            <Link href="/admin/articles/new">
+            <Link href="/admin/articles/">
               <FileText className="mr-2 h-4 w-4" /> Tulis Artikel Baru
             </Link>
           </Button>
