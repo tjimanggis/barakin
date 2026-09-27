@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const pdfParse = require('pdf-parse');
 import mammoth from 'mammoth';
 
@@ -12,26 +11,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
+    // Konversi file ke Buffer secara eksplisit
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+
     let text = '';
 
-    if (file.type === 'application/pdf') {
-      const data = await pdfParse(buffer);
+    // Deteksi tipe file
+    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      // Opsi untuk pdf-parse agar lebih stabil
+      const data = await pdfParse(buffer, { pagerender: () => '' });
       text = data.text;
     } else if (
       file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-      file.name.endsWith('.docx')
+      file.name.toLowerCase().endsWith('.docx')
     ) {
       const result = await mammoth.extractRawText({ buffer });
       text = result.value;
     } else {
-      return NextResponse.json({ error: 'Unsupported file type. Please upload PDF or DOCX.' }, { status: 400 });
+      return NextResponse.json({ error: 'Unsupported file type. Only PDF or DOCX allowed.' }, { status: 400 });
     }
 
     return NextResponse.json({ text });
-  } catch (error) {
-    console.error('Error extracting text:', error);
-    return NextResponse.json({ error: 'Failed to extract text from file' }, { status: 500 });
+  } catch (error: any) {
+    // Log detail error ke server log
+    console.error('SERVER EXTRACTION ERROR:', error);
+    return NextResponse.json({ 
+      error: 'Failed to extract text', 
+      details: error.message || 'Unknown server error' 
+    }, { status: 500 });
   }
 }
