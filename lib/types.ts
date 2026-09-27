@@ -53,7 +53,6 @@ export interface Article {
   read_time_minutes: number;
   published: boolean;
   cover_image_url: string | null;
-  thumbnail_url: string | null;
   created_at: string;
   updated_at: string;
 }
