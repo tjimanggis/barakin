@@ -106,6 +106,7 @@ export default function AdminLessonsPage() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [extractedContent, setExtractedContent] = useState('');
 
   const {
     register, handleSubmit, reset, setValue, watch,
@@ -147,7 +148,23 @@ export default function AdminLessonsPage() {
         .getPublicUrl(filePath);
 
       setValue('file_url', publicUrl);
-      toast({ title: 'Berhasil', description: 'Dokumen berhasil diunggah' });
+      
+      // Extract text
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const res = await fetch('/api/extract-text', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (res.ok) {
+        const { text } = await res.json();
+        setValue('content_plain', text);
+        toast({ title: 'Berhasil', description: 'Dokumen diunggah dan teks berhasil diekstrak.' });
+      } else {
+        toast({ title: 'Berhasil', description: 'Dokumen diunggah, tapi gagal mengekstrak teks.', variant: 'destructive' });
+      }
     } catch (error: any) {
       toast({ title: 'Gagal mengunggah', description: error.message, variant: 'destructive' });
     } finally {
@@ -557,21 +574,22 @@ export default function AdminLessonsPage() {
               </div>
             </div>
 
-            {/* Content Voweled */}
-            <div className="space-y-1.5">
-              <Label htmlFor="l-voweled">
-                Konten Bertanda Baca{' '}
-                <span className="text-xs text-slate-400">(dengan harakat)</span>
-              </Label>
-              <Textarea
-                id="l-voweled"
-                placeholder="Tulis konten materi dengan tanda baca (harakat)..."
-                rows={6}
-                {...register('content_voweled')}
-                className="font-mono text-sm"
-                dir="auto"
-              />
-            </div>
+             {/* Content Voweled */}
+             <div className="space-y-1.5">
+               <Label htmlFor="l-voweled">
+                 Konten Bertanda Baca{' '}
+                 <span className="text-xs text-slate-400">(dengan harakat)</span>
+               </Label>
+               <Textarea
+                 id="l-voweled"
+                 placeholder="Tulis konten materi dengan tanda baca (harakat) atau pilih file untuk mengisi otomatis..."
+                 rows={6}
+                 {...register('content_voweled')}
+                 className="font-mono text-sm"
+                 dir="auto"
+               />
+             </div>
+
 
             {/* Content Plain */}
             <div className="space-y-1.5">

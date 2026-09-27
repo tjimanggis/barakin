@@ -56,6 +56,7 @@ const articleSchema = z.object({
   category_id: z.string().optional(),
   read_time_minutes: z.coerce.number().int().min(1).max(120).default(5),
   cover_image_url: z.string().url('URL tidak valid').optional().or(z.literal('')),
+  thumbnail_url: z.string().url('URL tidak valid').optional().or(z.literal('')),
   file_url: z.string().url('URL tidak valid').optional().or(z.literal('')),
   published: z.boolean().default(false),
 });
@@ -154,6 +155,7 @@ export default function AdminArticlesPage() {
   const titleWatch = watch('title', '');
   const publishedWatch = watch('published', false);
   const coverImageUrlWatch = watch('cover_image_url', '');
+  const thumbnailUrlWatch = watch('thumbnail_url', '');
 
   /* ---- handle image upload ---- */
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -347,6 +349,7 @@ export default function AdminArticlesPage() {
       category_id: article.category_id ?? '',
       read_time_minutes: article.read_time_minutes,
       cover_image_url: article.cover_image_url ?? '',
+      thumbnail_url: article.thumbnail_url ?? '',
       published: article.published,
     });
     setDialogOpen(true);
@@ -363,6 +366,7 @@ export default function AdminArticlesPage() {
       category_id: values.category_id || null,
       read_time_minutes: values.read_time_minutes,
       cover_image_url: values.cover_image_url || null,
+      thumbnail_url: values.thumbnail_url || null,
       file_url: values.file_url || null,
       tags,
       published: values.published,
@@ -644,6 +648,38 @@ export default function AdminArticlesPage() {
                   </div>
                 )}
                 {errors.cover_image_url && <p className="text-xs text-red-500">{errors.cover_image_url.message}</p>}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="a-thumbnail">Thumbnail</Label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input id="a-thumbnail" type="url" placeholder="https://..." {...register('thumbnail_url')} className={errors.thumbnail_url ? 'border-red-400 pl-8' : 'pl-8'} />
+                    <ImageIcon className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="relative"
+                    disabled={uploading}
+                  >
+                    {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                    <input
+                      type="file"
+                      className="absolute inset-0 cursor-pointer opacity-0"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      disabled={uploading}
+                    />
+                  </Button>
+                </div>
+                {thumbnailUrlWatch && (
+                  <div className="mt-2 relative h-20 w-32 rounded-md overflow-hidden border">
+                    <img src={thumbnailUrlWatch} alt="Thumbnail Preview" className="h-full w-full object-cover" />
+                  </div>
+                )}
+                {errors.thumbnail_url && <p className="text-xs text-red-500">{errors.thumbnail_url.message}</p>}
               </div>
             </div>
 

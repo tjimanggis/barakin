@@ -20,6 +20,7 @@ export default function ArtikelDetailPage({
   const [isLiked, setIsLiked] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [authorName, setAuthorName] = useState<string>('');
   const [article, setArticle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -41,6 +42,14 @@ export default function ArtikelDetailPage({
         notFound();
       }
       setArticle(articleData);
+
+      // Fetch Author Name
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', articleData.author_id)
+        .single();
+      setAuthorName(profile?.display_name || 'Author');
 
       if (user) {
         // Check Like
@@ -159,7 +168,7 @@ export default function ArtikelDetailPage({
         <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-slate-500">
           <span className="flex items-center gap-1.5">
             <User className="h-4 w-4" />
-            Author
+            {authorName}
           </span>
           <span className="flex items-center gap-1.5">
             <Calendar className="h-4 w-4" />
