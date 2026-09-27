@@ -121,7 +121,8 @@ export default function AdminLessonsPage() {
 
     // Validate file type
     const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-    if (!validTypes.includes(file.type)) {
+    const validExtensions = ['.pdf', '.doc', '.docx'];
+    if (!validTypes.includes(file.type) && !validExtensions.some((extension) => file.name.toLowerCase().endsWith(extension))) {
       toast({ title: 'Gagal', description: 'Hanya file PDF atau Word yang diperbolehkan', variant: 'destructive' });
       return;
     }
@@ -138,10 +139,21 @@ export default function AdminLessonsPage() {
       const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `lessons/${fileName}`;
 
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/extract-text', {
+        method: 'POST',
+        body: formData,
+      });
+      const extraction = await res.json();
+      if (!res.ok) throw new Error(extraction.error || 'Gagal mengekstrak teks dari dokumen.');
+      if (typeof extraction.text !== 'string' || !extraction.text.trim()) {
+        throw new Error('Teks tidak ditemukan di dalam dokumen.');
+      }
+
       const { error: uploadError } = await supabase.storage
         .from('documents')
         .upload(filePath, file);
-
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
@@ -149,23 +161,8 @@ export default function AdminLessonsPage() {
         .getPublicUrl(filePath);
 
       setValue('file_url', publicUrl);
-      
-      // Extract text
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      const res = await fetch('/api/extract-text', {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (res.ok) {
-        const { text } = await res.json();
-        setValue('content_plain', text);
-        toast({ title: 'Berhasil', description: 'Dokumen diunggah dan teks berhasil diekstrak.' });
-      } else {
-        toast({ title: 'Berhasil', description: 'Dokumen diunggah, tapi gagal mengekstrak teks.', variant: 'destructive' });
-      }
+      setValue('content_plain', extraction.text);
+      toast({ title: 'Berhasil', description: 'Teks dokumen dimasukkan ke konten materi.' });
     } catch (error: any) {
       toast({ title: 'Gagal mengunggah', description: error.message, variant: 'destructive' });
     } finally {

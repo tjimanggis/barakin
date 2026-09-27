@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-const pdfParse = require('pdf-parse');
+import { PDFParse } from 'pdf-parse';
 import mammoth from 'mammoth';
+const WordExtractor = require('word-extractor');
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,29 +17,43 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
 
     let text = '';
+    const fileName = file.name.toLowerCase();
 
-    // Deteksi tipe file
-    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-      // Opsi untuk pdf-parse agar lebih stabil
-      const data = await pdfParse(buffer, { pagerender: () => '' });
-      text = data.text;
+    if (file.type === 'application/pdf' || fileName.endsWith('.pdf')) {
+      const parser = new PDFParse({ data: new Uint8Array(buffer) });
+      try {
+        const result = await parser.getText();
+        text = result.text.replace(/\n\n-- \d+ of \d+ --\n\n/g, '\n\n');
+      } finally {
+        await parser.destroy();
+      }
     } else if (
       file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-      file.name.toLowerCase().endsWith('.docx')
+      fileName.endsWith('.docx')
     ) {
       const result = await mammoth.extractRawText({ buffer });
       text = result.value;
+    } else if (file.type === 'application/msword' || fileName.endsWith('.doc')) {
+      const extractor = new WordExtractor();
+      const document = await extractor.extract(buffer);
+      text = document.getBody();
     } else {
-      return NextResponse.json({ error: 'Unsupported file type. Only PDF or DOCX allowed.' }, { status: 400 });
+      return NextResponse.json({ error: 'Format tidak didukung. Unggah file PDF atau Word.' }, { status: 400 });
+    }
+
+    if (!text.trim()) {
+      return NextResponse.json(
+        { error: 'Teks tidak ditemukan. PDF hasil scan gambar belum dapat diekstrak.' },
+        { status: 422 },
+      );
     }
 
     return NextResponse.json({ text });
   } catch (error: any) {
-    // Log detail error ke server log
     console.error('SERVER EXTRACTION ERROR:', error);
     return NextResponse.json({ 
-      error: 'Failed to extract text', 
-      details: error.message || 'Unknown server error' 
+      error: 'Gagal mengekstrak teks dari dokumen.',
+      details: error.message || 'Kesalahan server yang tidak diketahui.',
     }, { status: 500 });
   }
 }
